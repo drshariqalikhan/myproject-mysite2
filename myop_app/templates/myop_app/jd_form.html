@@ -1,0 +1,35 @@
+{% extends "myop_app/base.html" %}
+
+{% block title %} Add Patient details {% endblock %}
+
+{% block brand %} MyOp {% endblock %}
+
+{% block navoption %} <li><a href="/contact">Contact Us</a></li>  {% endblock %}
+
+{% block body %}
+<div class = "container">
+  <form method = "post" action="">
+    {% csrf_token %}
+    <div class = container>
+
+    {% for field in form %}
+
+        <div class="fieldWrapper">
+            <div class ="col-lg-5 col-md-5 col-sm-6 col-xs-12">
+            {{ field.errors }}
+            {{ field.label_tag }}: {{ field }}
+            <br></br>
+
+            </div>
+
+        </div>
+
+    {% endfor %}
+    <!--<div class = jumbotron>-->
+    <!--{{form}}-->
+    </div>
+
+    <button type="submit" class = "btn btn-primary" value="Save"> Submit </button>
+</form>
+</div>
+{% endblock %}

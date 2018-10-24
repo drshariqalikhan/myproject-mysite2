@@ -16,9 +16,7 @@
 {% endblock %}
 
 {% block navRtBut %}
-<li><a href="/api/register"><span class="glyphicon glyphicon-user"></span> Register New Patient</a></li>
-<li><a href="/api/add/jd"><span class="glyphicon glyphicon-plus"></span> Register New Session</a></li>
-<li><a href="/api/alert"><span class="glyphicon glyphicon-fire"></span> Manage ALerts</a></li>
+li><a href="/api/dash"><span class="glyphicon glyphicon-king"></span> DashBoard</a></li>
 <li><a href="/api/logout"><span class="glyphicon glyphicon-log-out"></span> Logout</a></li>
 
 {% endblock %}
@@ -151,6 +149,9 @@ $(document).ready(function()
 
             $table.bootstrapTable('filterBy', {
                 IsActiveSession: [true,]
+            });
+            $table.bootstrapTable('filterBy', {
+                IsAlertFromPtToServ: [true,]
             });
 
             $(".btn").click(function(){

@@ -35,6 +35,7 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     'rest_auth',
     'myop_app',
+
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -125,10 +126,12 @@ STATIC_URL = '/static/'
 MEDIA_ROOT = u'/home/myop/mysite2/media2'
 MEDIA_URL = '/media2/'
 STATIC_ROOT = u'/home/myop/mysite2/static2'
+LOGIN_REDIRECT_URL = '/api/dash'
+LOGOUT_REDIRECT_URL = '/api/'
 
 REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': (
-        'rest_framework.permissions.IsAuthenticated',
+        # 'rest_framework.permissions.IsAuthenticated',
     ),
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework.authentication.TokenAuthentication',

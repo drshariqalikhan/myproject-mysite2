@@ -1,0 +1,28 @@
+{% extends "myop_app/base.html" %}
+
+{% block title %} Login {% endblock %}
+
+{% block brand %} MyOp {% endblock %}
+
+{% block navoption %}
+<li><a href="/contact">Contact Us</a></li>
+
+{% endblock %}
+
+{% block navRtBut %}
+{% endblock %}
+
+
+
+{% block body %}
+<div class="container">
+<h1>Welcome</h1>
+<p>You can login here!</p>
+<h2>Login:</h2>
+<form method = "post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type = "submit">Login</button>
+</form>
+</div>
+{% endblock %}

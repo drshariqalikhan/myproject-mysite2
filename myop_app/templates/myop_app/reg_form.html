@@ -1,24 +1,21 @@
 {% extends "myop_app/base.html" %}
 
-{% block title %} Home {% endblock %}
+{% block title %} Registration {% endblock %}
 
 {% block brand %} MyOp {% endblock %}
 
-{% block head %}
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-table/1.10.1/bootstrap-table.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-table/1.10.1/bootstrap-table.min.js"></script>
-{% endblock %}
+{% block navoption %} <li><a href="/contact">Contact Us</a></li>  {% endblock %}
 
 
-{% block navoption %}
-<li><a href="">Contact Us</a></li>
 
-{% endblock %}
+
 
 {% block body %}
-<form method = "post">
+<div class = "container">
+  <form method = "post">
     {% csrf_token %}
-    {{ form.as_p }}
-
+    {{ form.as_p}}
+    <button type="submit"> Submit </button>
 </form>
+</div>
 {% endblock %}

@@ -1,33 +1,85 @@
 from django.db import models
 from django.contrib.auth.models import User
 from datetime import date
+from django.utils.timezone import now
 # from dateutil.relativedelta import relativedelta
 
-# journey_point = [#complete/incomplete
-# 'preop',
-# 'preop_GotoClinic',
-# 'preop_drug',
-# 'reminder1',
-# 'reminder2',
-# 'op',
-# 'op_cancelled',
-# 'dead',
-# 'dis_home',
-# 'pod1',
-# 'pod2'
-# 'pod5'
-# 'pod10'
-# 'pod15'
-# ]
+#
+#preop-(preopMedPhoto)-->Reminder1--->Reminder2--->UnkwnOpStatus--->POD1--->POD3---->POD5--->POD10--->POD15-->X
+
+
+# DAYS_to_OP:
+# >8(12)--------------------10-------------------------9--------------------------5-----------------3---------------------0----------------------------------------------------------1--2-------3----4------5--6-7-8-9-10--11-12-13-14-15----X
+# <----preop------11><---------preopMedPhoto----------9>                         <5--Rem1--4>      <3--Rem2--2>                                        <1pm--UnkwnOpStatus-----5pm> <R>       <R>         <R>         <R>             <R>
+#                                                                         UNFIT_OPCancel
+#                 preop GotoClinic---------------------------------------<               PT_OPCancel/UNFIT_OPCancel
+# preop----------<                      /---------------------------------->Reminder1----<                 |
+#                 preop ok-<-----------<                                  /               \-----Reminder2--<                     PT_OPCancel/UNFIT_OPCancel
+#                           preopMedPhoto -------------------------------/                                  \---UnkwnOpStatus--<                               PostOpHome------->  POD1------->POD3------->POD5------->POD10------->POD15--->X
+#                                                                                                                               \-----------------------------<              |             |           |            |           |
+#                                                                                                                                                       |      PosyOpHosp-------------------------------------------------------------------->X
+#                                                                                                                                                      DEAD
+
+# JOURNEY POINTS:
+
+# preop<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+# preop_GotoClinic
+# preop_ok
+# preopMedPhoto<<<<<<<<<<<<<<<<<<<<<
+# UNFIT_OPCancel
+# PT_OPCancel
+# DEAD
+# Reminder1<<<<<<<<<<<<<<<<<<<<<<<<
+# Reminder2<<<<<<<<<<<<<<<<<<<<<<<<
+# UnkwnOpStatus<<<<<<<<<<<<<<<<<<<<reminder to staff
+# POD1<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+# POD3<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+# POD5<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+# POD10<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+# POD15<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+
 # Create your models here.
 class JourneyData(models.Model):
+    PREOP = 'preop'
+    PREOP_GOTOCLINIC = 'preop_GotoClinic'
+    PREOPMEDPHOTO = 'preopMedPhoto'
+    REMINDER1 = 'Reminder1'
+    REMINDER2 = 'Reminder2'
+    UNKNOWNOPSTATUS = 'UnkwnOpStatus'
+    POD1 = 'POD1'
+    POD3 = 'POD3'
+    POD5 = 'POD5'
+    POD10 = 'POD10'
+    POD15 = 'POD15'
+    SUPERSYNC = 'SuperSync'
+    DEAD = 'DEAD'
+
+    JOURNEY_PT = (
+        (PREOP, 'preop'),
+        (PREOP_GOTOCLINIC, 'preop_GotoClinic'),
+        (PREOPMEDPHOTO, 'preopMedPhoto'),
+        (REMINDER1, 'Reminder1'),
+        (REMINDER2, 'Reminder2'),
+        (UNKNOWNOPSTATUS, 'UnkwnOpStatus'),
+        (POD1, 'POD1'),
+        (POD3, 'POD3'),
+        (POD5, 'POD5'),
+        (POD10, 'POD10'),
+        (POD15, 'POD15'),
+        (SUPERSYNC, 'SuperSync'),
+        (DEAD, 'DEAD'),
+    )
     patient_name = models.ForeignKey(User, on_delete=models.CASCADE)
     patient_username = models.CharField(max_length=50, blank = True)
     created = models.DateTimeField(auto_now_add=True)
     op_date = models.DateField(blank = True)
     op_name = models.CharField(max_length=50, blank = True)
-    journey_point = models.CharField(max_length=100, blank = True, default="preop_incomplete")
-    UnixTimeOfLastSync = models.CharField(max_length=100,default = "1", blank = True)
+    journey_point = models.CharField(max_length=100, blank = True, choices=JOURNEY_PT,default=PREOP)
+    UnixTimeOfLastSync = models.IntegerField(default = 1, blank = True)
+    IsActiveSession =  models.BooleanField(default=False )
+
+    FCM = models.CharField(max_length=100, blank = True)
 
 
     #Alert boolean and Alert CharField
@@ -42,18 +94,43 @@ class JourneyData(models.Model):
 
 
     #patient demographic :Race,DOB, Age(calc),gender,Ht,Wt,SBP,DBP
+    patient_firstname = models.CharField(max_length=50, blank = True)
+    patient_lastname = models.CharField(max_length=50, blank = True)
+    patient_mobile_number = models.IntegerField(default = 0, blank = True)
+    race = models.CharField(max_length=50, blank = True)
+    gender = models.CharField(max_length=10, blank = True)
+    date_of_birth = models.DateField(default=now, blank = True)
+    age_at_op = models.IntegerField(default=0, blank = True)
+    height = models.IntegerField(default=0, blank = True)
+    weight_at_op = models.IntegerField(default= 0, blank = True)
+    sbp_at_op = models.IntegerField(default=0,blank = True)
+    dbp_at_op =models.IntegerField(default=0,blank = True)
+    heartrate_at_op = models.IntegerField(default=0,blank = True)
 
 
 
     #planned post op location : [ds/ssw/sda/ip]
+    planned_postop_location = models.CharField(max_length=10, blank = True)
+
 
 
 
     #About Surgery ,anaesthesia , phyio and wound care video
-    AboutOpSurgeryLinks = models.URLField(max_length=200, blank = True)
-    AboutAnesLinks = models.URLField(max_length=200, blank = True)
-    AboutPhysioLinks = models.URLField(max_length=200, blank = True)
-    AboutWoundCareLinks = models.URLField(max_length=200, blank = True)
+    SurgeryVideoLink = models.URLField(max_length=200, blank = True)
+    AnesthVideoLink = models.URLField(max_length=200, blank = True)
+    PhysioVideoLink = models.URLField(max_length=200, blank = True)
+    WoundCareVideoLink = models.URLField(max_length=200, blank = True)
+
+    #About Surgery ,anaesthesia , phyio and wound care reading material
+    AboutOpSurgeryLinks = models.TextField(blank=True, null=True)
+    AboutAnesLinks = models.TextField(blank=True, null=True)
+    AboutPhysioLinks = models.TextField(blank=True, null=True)
+    AboutWoundCareLinks = models.TextField(blank=True, null=True)
+
+
+    #preop instructions
+    PreopInstructions = models.TextField(blank=True, null=True)
+
 
     #boolean outcomes
     is_OnlinePreopElig= models.BooleanField(default=False)
@@ -73,11 +150,43 @@ class JourneyData(models.Model):
 
 
     #preop questions
-
-
+    HasAdeqMouthOpening = models.BooleanField(default=False)
+    HasAdeqNeckMov = models.BooleanField(default=False)
+    CanClimbStairs = models.BooleanField(default=False)
+    HasFeverInfec = models.BooleanField(default=False)
+    HasLooseTeeth = models.BooleanField(default=False)
+    HasDentalImplant = models.BooleanField(default=False)
+    IsPregnant = models.BooleanField(default=False)
+    HasSobAtRest = models.BooleanField(default=False)
+    HasHeartAttacks = models.BooleanField(default=False)
+    HasChestPain = models.BooleanField(default=False)
+    HasIrregHR = models.BooleanField(default=False)
+    HasHtn = models.BooleanField(default=False)
+    HasDiabetes = models.BooleanField(default=False)
+    HasThyroidDs = models.BooleanField(default=False)
+    HasKidneyDs = models.BooleanField(default=False)
+    HasLiverDs = models.BooleanField(default=False)
+    HasGastricReflux = models.BooleanField(default=False)
+    HasStroke = models.BooleanField(default=False)
+    HasEpilepsy = models.BooleanField(default=False)
+    HasPsychDs = models.BooleanField(default=False)
+    HasBloodDs = models.BooleanField(default=False)
+    HasCtOrMsDs = models.BooleanField(default=False)
+    HasAllergies = models.BooleanField(default=False)
+    HasOsaOrRespDs = models.BooleanField(default=False)
+    HasLoudSnore = models.BooleanField(default=False)
+    HasDaySomno = models.BooleanField(default=False)
+    HasSleepApneaEpisodes = models.BooleanField(default=False)
+    IsSmoker = models.BooleanField(default=False)
+    IsAlcoholic = models.BooleanField(default=False)
+    IsOnTcm = models.BooleanField(default=False)
+    IsOnMeds = models.BooleanField(default=False)
+    HasFHOAnesRxn = models.BooleanField(default=False)
+    HasPrevOps = models.BooleanField(default=False)
+    HasPONV = models.BooleanField(default=False)
+    HasUploadedMedPhoto = models.BooleanField(default=False)
 
     #preop drugs
-    isOnMeds = models.BooleanField(default=False);
     def _upload_path(instance,filename):
         return instance.get_upload_path(filename)
 
@@ -86,38 +195,106 @@ class JourneyData(models.Model):
     def get_upload_path(self,filename):
         return str(self.patient_name)+"/"+str(self.created)+"/drugs/"+filename
 
+    #postop wound photos
+    def _upload_path(instance,filename):
+        return instance.get_upload_path(filename)
+
+    wound = models.ImageField(upload_to=_upload_path, blank = True)
+
+    def get_upload_path(self,filename):
+        return str(self.patient_name)+"/"+str(self.created)+"/wound/"+filename
+
 
 
 
     #Reminder1 questions with QOL
-
-
+    HasFeverInfecRem1 = models.BooleanField(default=False)
+    HasLooseTeethRem1 = models.BooleanField(default=False)
+    IsPregnantRem1 = models.BooleanField(default=False)
+    IsHavingOpRem1 = models.BooleanField(default=False)
+    PainScoreRem1 = models.IntegerField(default = -1)
+    MobilityScoreRem1 = models.IntegerField(default = -1)
+    ADL_ScoreRem1 = models.IntegerField(default = -1)
+    MoodScoreRem1 = models.IntegerField(default = -1)
 
 
     #Reminder2 questions
-
-
-
+    HasFeverInfecRem2 = models.BooleanField(default=False)
+    HasLooseTeethRem2 = models.BooleanField(default=False)
+    IsPregnantRem2 = models.BooleanField(default=False)
+    IsHavingOpRem2 = models.BooleanField(default=False)
 
 
     #pod1 questions
-    pod1_satisfaction_score = models.IntegerField(default = -1)
-
-
-    #pod2 questions
+    SatisfactionScorePOD1 = models.IntegerField(default = -1)
+    PainScoreRestPOD1 = models.IntegerField(default = -1)
+    PainScoreMovPOD1 = models.IntegerField(default = -1)
+    PONVScorePOD1 = models.IntegerField(default = -1)
+    SoreThroatScorePOD1 = models.IntegerField(default = -1)
+    ItchyScorePOD1 = models.IntegerField(default = -1)
+    HasDentalDamagePOD1 = models.BooleanField(default=False)
+    HasUploadedWoundPhotoPOD1 = models.BooleanField(default=False)
+    HasCalfTenderPOD1 = models.BooleanField(default=False)
+    HasSOBPOD1 = models.BooleanField(default=False)
+    HasFeverPOD1 = models.BooleanField(default=False)
+    HasDysuriaRetenPOD1 = models.BooleanField(default=False)
+    HasNumbnessPOD1 = models.BooleanField(default=False)
+    IsDischargedHomePOD1 = models.BooleanField(default=False)#from sever
 
 
     #pod3 questions
+    PainScoreRestPOD3 = models.IntegerField(default = -1)
+    PainScoreMovPOD3 = models.IntegerField(default = -1)
+    HasDysuriaRetenPOD3 = models.BooleanField(default=False)
+    HasNumbnessPOD3 = models.BooleanField(default=False)
+    HasCalfTenderPOD3 = models.BooleanField(default=False)
+    HasSOBPOD3 = models.BooleanField(default=False)
+    HasFeverPOD3 = models.BooleanField(default=False)
+    HasWoundRedOrDischargePOD3 = models.BooleanField(default=False)
+    HasNeededToVisitAePOD3 = models.BooleanField(default=False)
+    HasNeededToReadmitPOD3 = models.BooleanField(default=False)
+    HasUploadedWoundPhotoPOD3 = models.BooleanField(default=False)
+    IsDischargedHomePOD3 = models.BooleanField(default=False)#from server
 
 
     #pod5 questions
+    PainScorePOD5 = models.IntegerField(default = -1)
+    HasCalfTenderPOD5 = models.BooleanField(default=False)
+    HasSOBPOD5 = models.BooleanField(default=False)
+    HasFeverPOD5 = models.BooleanField(default=False)
+    HasDysuriaPOD5 = models.BooleanField(default=False)
+    HasWoundRedOrDischargePOD5 = models.BooleanField(default=False)
+    HasNeededToVisitAePOD5 = models.BooleanField(default=False)
+    HasNeededToReadmitPOD5 = models.BooleanField(default=False)
+    HasUploadedWoundPhotoPOD5 = models.BooleanField(default=False)
+    IsDischargedHomePOD5 = models.BooleanField(default=False)#from server
 
 
     #pod10 questions
-
+    PainScorePOD10 = models.IntegerField(default = -1)
+    HasCalfTenderPOD10 = models.BooleanField(default=False)
+    HasSOBPOD10 = models.BooleanField(default=False)
+    HasFeverPOD10 = models.BooleanField(default=False)
+    HasDysuriaPOD10 = models.BooleanField(default=False)
+    HasWoundRedOrDischargePOD10 = models.BooleanField(default=False)
+    HasNeededToVisitAePOD10 = models.BooleanField(default=False)
+    HasNeededToReadmitPOD10 = models.BooleanField(default=False)
+    HasUploadedWoundPhotoPOD10 = models.BooleanField(default=False)
+    IsDischargedHomePOD10 = models.BooleanField(default=False)#from server
 
     #pod15 questions with QOL
-    pod15_satisfaction_score = models.IntegerField(default = -1)
+    PainScorePOD15 = models.IntegerField(default = -1)
+    MobilityScorePOD15 = models.IntegerField(default = -1)
+    ADL_ScorePOD15 = models.IntegerField(default = -1)
+    MoodScorePOD15 = models.IntegerField(default = -1)
+    SatisfactionScorePOD15 = models.IntegerField(default = -1)
+
+    HasNeededToVisitAePOD15 = models.BooleanField(default=False)
+    HasNeededToReadmitPOD15 = models.BooleanField(default=False)
+    HasReturnedToDailyWorkPOD15 = models.BooleanField(default=False)
+
+    HasUploadedWoundPhotoPOD5 = models.BooleanField(default=False)
+    IsDischargedHomePOD5 = models.BooleanField(default=False)#from server
 
     #Chat patient-Hospital
     MsgFromServToPt = models.CharField(max_length=1000,blank = True)
@@ -144,6 +321,12 @@ class JourneyData(models.Model):
     @property
     def get_patient_username(self):
         return str(self.patient_name)
+
+#logic to get age from date of birth and date of operation
+    @property
+    def get_age_at_op(self):
+        delta = int(self.op_date.year - self.date_of_birth.year)
+        return delta
 
 #logic to determine is post op other complication :
     # @property
@@ -230,6 +413,7 @@ class JourneyData(models.Model):
     #     self.is_PostOpComplication =self.get_is_PostOpComplication
         self.is_OnlinePreopElig =self.get_is_OnlinePreopElig
         self.patient_username = self.get_patient_username
+        self.age_at_op = self.get_age_at_op
         # self.journey_point = self.get_journey_point
 
         super(JourneyData,self).save(*args,**kwargs)
